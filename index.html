@@ -1,7 +1,7 @@
 <html><head><base href="https://moncoeurpourelsa.com/">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mon Cœur pour Elsa</title>
+<title>Notre Amour Partagé</title>
 <style>
   body {
     font-family: 'Roboto', sans-serif;
@@ -27,20 +27,10 @@
     padding: 20px;
     margin-bottom: 20px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease;
-  }
-  .category:hover {
-    transform: translateY(-5px);
   }
   .category h2 {
     color: #8a2be2;
     margin-top: 0;
-  }
-  .category-content {
-    display: none;
-  }
-  .category.active .category-content {
-    display: block;
   }
   .heart-icon {
     width: 30px;
@@ -49,7 +39,7 @@
     margin-right: 10px;
     vertical-align: middle;
   }
-  #save-button {
+  #submit-button {
     display: block;
     margin: 20px auto;
     padding: 10px 20px;
@@ -60,25 +50,35 @@
     cursor: pointer;
     font-size: 1em;
   }
-  #save-button:hover {
+  #submit-button:hover {
     background-color: #7b1fa2;
+  }
+  .entry {
+    background-color: #f9f4ff;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  .entry-meta {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 5px;
   }
 </style>
 </head>
 <body>
   <div class="container">
-    <h1>Mon Cœur pour Elsa</h1>
+    <h1>Notre Amour Partagé</h1>
     
     <div class="category" data-category="emotions">
       <h2>
         <svg class="heart-icon" viewBox="0 0 32 32">
           <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
         </svg>
-        Mes Émotions
+        Nos Émotions
       </h2>
-      <div class="category-content">
-        <textarea rows="5" placeholder="Décris tes émotions ici..."></textarea>
-      </div>
+      <div id="emotions-entries"></div>
+      <textarea rows="3" placeholder="Partagez vos émotions ici..."></textarea>
     </div>
     
     <div class="category" data-category="souvenirs">
@@ -88,9 +88,8 @@
         </svg>
         Nos Souvenirs
       </h2>
-      <div class="category-content">
-        <textarea rows="5" placeholder="Note vos souvenirs préférés ici..."></textarea>
-      </div>
+      <div id="souvenirs-entries"></div>
+      <textarea rows="3" placeholder="Partagez vos souvenirs préférés ici..."></textarea>
     </div>
     
     <div class="category" data-category="qualites">
@@ -98,11 +97,10 @@
         <svg class="heart-icon" viewBox="0 0 32 32">
           <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
         </svg>
-        Ses Qualités
+        Les Qualités de l'Amour
       </h2>
-      <div class="category-content">
-        <textarea rows="5" placeholder="Liste les qualités d'Elsa ici..."></textarea>
-      </div>
+      <div id="qualites-entries"></div>
+      <textarea rows="3" placeholder="Partagez les qualités de l'amour ici..."></textarea>
     </div>
     
     <div class="category" data-category="projets">
@@ -110,64 +108,89 @@
         <svg class="heart-icon" viewBox="0 0 32 32">
           <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
         </svg>
-        Nos Projets Futurs
+        Nos Projets d'Amour
       </h2>
-      <div class="category-content">
-        <textarea rows="5" placeholder="Écris vos projets futurs ici..."></textarea>
-      </div>
+      <div id="projets-entries"></div>
+      <textarea rows="3" placeholder="Partagez vos projets d'amour ici..."></textarea>
     </div>
     
-    <button id="save-button">Enregistrer les modifications</button>
+    <button id="submit-button">Partager l'amour</button>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
   <script>
+    // Initialize Firebase (replace with your own config)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      databaseURL: "YOUR_DATABASE_URL",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
     document.addEventListener('DOMContentLoaded', function() {
       const categories = document.querySelectorAll('.category');
-      const saveButton = document.getElementById('save-button');
+      const submitButton = document.getElementById('submit-button');
 
-      // Toggle category content visibility
-      categories.forEach(category => {
-        category.addEventListener('click', function() {
-          this.classList.toggle('active');
-        });
-      });
+      // Load and display entries
+      loadEntries();
 
-      // Load saved content
-      loadContent();
+      // Submit new entries
+      submitButton.addEventListener('click', submitEntries);
 
-      // Save content
-      saveButton.addEventListener('click', saveContent);
+      function loadEntries() {
+        categories.forEach(category => {
+          const categoryName = category.dataset.category;
+          const entriesDiv = document.getElementById(`${categoryName}-entries`);
 
-      function loadContent() {
-        const savedData = localStorage.getItem('monCoeurPourElsa');
-        if (savedData) {
-          const decryptedData = CryptoJS.AES.decrypt(savedData, 'monAmourSecret').toString(CryptoJS.enc.Utf8);
-          const parsedData = JSON.parse(decryptedData);
-          
-          categories.forEach(category => {
-            const categoryName = category.dataset.category;
-            const textarea = category.querySelector('textarea');
-            if (parsedData[categoryName]) {
-              textarea.value = parsedData[categoryName];
-            }
+          database.ref(categoryName).orderByChild('timestamp').limitToLast(10).on('value', (snapshot) => {
+            entriesDiv.innerHTML = '';
+            snapshot.forEach((childSnapshot) => {
+              const entry = childSnapshot.val();
+              const entryElement = createEntryElement(entry);
+              entriesDiv.prepend(entryElement);
+            });
           });
-        }
+        });
       }
 
-      function saveContent() {
-        const data = {};
+      function createEntryElement(entry) {
+        const div = document.createElement('div');
+        div.className = 'entry';
+        div.innerHTML = `
+          <div class="entry-meta">
+            Partagé par ${entry.username} le ${new Date(entry.timestamp).toLocaleString()}
+          </div>
+          <div>${entry.content}</div>
+        `;
+        return div;
+      }
+
+      function submitEntries() {
         categories.forEach(category => {
           const categoryName = category.dataset.category;
           const textarea = category.querySelector('textarea');
-          data[categoryName] = textarea.value;
+          const content = textarea.value.trim();
+
+          if (content) {
+            const username = prompt("Entrez votre nom (optionnel):", "Anonyme");
+            const entry = {
+              username: username || "Anonyme",
+              content: content,
+              timestamp: firebase.database.ServerValue.TIMESTAMP
+            };
+
+            database.ref(categoryName).push(entry);
+            textarea.value = '';
+          }
         });
 
-        const jsonData = JSON.stringify(data);
-        const encryptedData = CryptoJS.AES.encrypt(jsonData, 'monAmourSecret').toString();
-        localStorage.setItem('monCoeurPourElsa', encryptedData);
-
-        alert('Vos modifications ont été enregistrées avec succès !');
+        alert('Vos messages d\'amour ont été partagés avec succès !');
       }
     });
   </script>
