@@ -1,0 +1,175 @@
+<html><head><base href="https://moncoeurpourelsa.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Cœur pour Elsa</title>
+<style>
+  body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f0e6ff;
+    color: #333;
+  }
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    color: #8a2be2;
+    font-size: 2.5em;
+    margin-bottom: 30px;
+  }
+  .category {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+  }
+  .category:hover {
+    transform: translateY(-5px);
+  }
+  .category h2 {
+    color: #8a2be2;
+    margin-top: 0;
+  }
+  .category-content {
+    display: none;
+  }
+  .category.active .category-content {
+    display: block;
+  }
+  .heart-icon {
+    width: 30px;
+    height: 30px;
+    fill: #ff69b4;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  #save-button {
+    display: block;
+    margin: 20px auto;
+    padding: 10px 20px;
+    background-color: #8a2be2;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  #save-button:hover {
+    background-color: #7b1fa2;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mon Cœur pour Elsa</h1>
+    
+    <div class="category" data-category="emotions">
+      <h2>
+        <svg class="heart-icon" viewBox="0 0 32 32">
+          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
+        </svg>
+        Mes Émotions
+      </h2>
+      <div class="category-content">
+        <textarea rows="5" placeholder="Décris tes émotions ici..."></textarea>
+      </div>
+    </div>
+    
+    <div class="category" data-category="souvenirs">
+      <h2>
+        <svg class="heart-icon" viewBox="0 0 32 32">
+          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
+        </svg>
+        Nos Souvenirs
+      </h2>
+      <div class="category-content">
+        <textarea rows="5" placeholder="Note vos souvenirs préférés ici..."></textarea>
+      </div>
+    </div>
+    
+    <div class="category" data-category="qualites">
+      <h2>
+        <svg class="heart-icon" viewBox="0 0 32 32">
+          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
+        </svg>
+        Ses Qualités
+      </h2>
+      <div class="category-content">
+        <textarea rows="5" placeholder="Liste les qualités d'Elsa ici..."></textarea>
+      </div>
+    </div>
+    
+    <div class="category" data-category="projets">
+      <h2>
+        <svg class="heart-icon" viewBox="0 0 32 32">
+          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
+        </svg>
+        Nos Projets Futurs
+      </h2>
+      <div class="category-content">
+        <textarea rows="5" placeholder="Écris vos projets futurs ici..."></textarea>
+      </div>
+    </div>
+    
+    <button id="save-button">Enregistrer les modifications</button>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const categories = document.querySelectorAll('.category');
+      const saveButton = document.getElementById('save-button');
+
+      // Toggle category content visibility
+      categories.forEach(category => {
+        category.addEventListener('click', function() {
+          this.classList.toggle('active');
+        });
+      });
+
+      // Load saved content
+      loadContent();
+
+      // Save content
+      saveButton.addEventListener('click', saveContent);
+
+      function loadContent() {
+        const savedData = localStorage.getItem('monCoeurPourElsa');
+        if (savedData) {
+          const decryptedData = CryptoJS.AES.decrypt(savedData, 'monAmourSecret').toString(CryptoJS.enc.Utf8);
+          const parsedData = JSON.parse(decryptedData);
+          
+          categories.forEach(category => {
+            const categoryName = category.dataset.category;
+            const textarea = category.querySelector('textarea');
+            if (parsedData[categoryName]) {
+              textarea.value = parsedData[categoryName];
+            }
+          });
+        }
+      }
+
+      function saveContent() {
+        const data = {};
+        categories.forEach(category => {
+          const categoryName = category.dataset.category;
+          const textarea = category.querySelector('textarea');
+          data[categoryName] = textarea.value;
+        });
+
+        const jsonData = JSON.stringify(data);
+        const encryptedData = CryptoJS.AES.encrypt(jsonData, 'monAmourSecret').toString();
+        localStorage.setItem('monCoeurPourElsa', encryptedData);
+
+        alert('Vos modifications ont été enregistrées avec succès !');
+      }
+    });
+  </script>
+</body>
+</html>
