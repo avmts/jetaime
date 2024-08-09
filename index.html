@@ -1,198 +1,40 @@
-<html><head><base href="https://moncoeurpourelsa.com/">
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Notre Amour Partagé</title>
-<style>
-  body {
-    font-family: 'Roboto', sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f0e6ff;
-    color: #333;
-  }
-  .container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-  }
-  h1 {
-    text-align: center;
-    color: #8a2be2;
-    font-size: 2.5em;
-    margin-bottom: 30px;
-  }
-  .category {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  }
-  .category h2 {
-    color: #8a2be2;
-    margin-top: 0;
-  }
-  .heart-icon {
-    width: 30px;
-    height: 30px;
-    fill: #ff69b4;
-    margin-right: 10px;
-    vertical-align: middle;
-  }
-  #submit-button {
-    display: block;
-    margin: 20px auto;
-    padding: 10px 20px;
-    background-color: #8a2be2;
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-  }
-  #submit-button:hover {
-    background-color: #7b1fa2;
-  }
-  .entry {
-    background-color: #f9f4ff;
-    border-radius: 5px;
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  .entry-meta {
-    font-size: 0.8em;
-    color: #666;
-    margin-bottom: 5px;
-  }
-</style>
-</head>
-<body>
-  <div class="container">
-    <h1>Notre Amour Partagé</h1>
-    
-    <div class="category" data-category="emotions">
-      <h2>
-        <svg class="heart-icon" viewBox="0 0 32 32">
-          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
-        </svg>
-        Nos Émotions
-      </h2>
-      <div id="emotions-entries"></div>
-      <textarea rows="3" placeholder="Partagez vos émotions ici..."></textarea>
-    </div>
-    
-    <div class="category" data-category="souvenirs">
-      <h2>
-        <svg class="heart-icon" viewBox="0 0 32 32">
-          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
-        </svg>
-        Nos Souvenirs
-      </h2>
-      <div id="souvenirs-entries"></div>
-      <textarea rows="3" placeholder="Partagez vos souvenirs préférés ici..."></textarea>
-    </div>
-    
-    <div class="category" data-category="qualites">
-      <h2>
-        <svg class="heart-icon" viewBox="0 0 32 32">
-          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
-        </svg>
-        Les Qualités de l'Amour
-      </h2>
-      <div id="qualites-entries"></div>
-      <textarea rows="3" placeholder="Partagez les qualités de l'amour ici..."></textarea>
-    </div>
-    
-    <div class="category" data-category="projets">
-      <h2>
-        <svg class="heart-icon" viewBox="0 0 32 32">
-          <path d="M16 28.261c0 0-14-7.926-14-17.046 0-9.356 13.159-10.399 14-0.454 1.011-9.938 14-8.903 14 0.454 0 9.12-14 17.046-14 17.046z"/>
-        </svg>
-        Nos Projets d'Amour
-      </h2>
-      <div id="projets-entries"></div>
-      <textarea rows="3" placeholder="Partagez vos projets d'amour ici..."></textarea>
-    </div>
-    
-    <button id="submit-button">Partager l'amour</button>
-  </div>
+const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-  <script>
-    // Initialize Firebase (replace with your own config)
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_AUTH_DOMAIN",
-      databaseURL: "YOUR_DATABASE_URL",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_STORAGE_BUCKET",
-      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server);
 
-    document.addEventListener('DOMContentLoaded', function() {
-      const categories = document.querySelectorAll('.category');
-      const submitButton = document.getElementById('submit-button');
+app.use(express.static('public'));
 
-      // Load and display entries
-      loadEntries();
+let notes = [];
 
-      // Submit new entries
-      submitButton.addEventListener('click', submitEntries);
+io.on('connection', (socket) => {
+    console.log('A user connected');
+    socket.emit('loadNotes', notes);
 
-      function loadEntries() {
-        categories.forEach(category => {
-          const categoryName = category.dataset.category;
-          const entriesDiv = document.getElementById(`${categoryName}-entries`);
-
-          database.ref(categoryName).orderByChild('timestamp').limitToLast(10).on('value', (snapshot) => {
-            entriesDiv.innerHTML = '';
-            snapshot.forEach((childSnapshot) => {
-              const entry = childSnapshot.val();
-              const entryElement = createEntryElement(entry);
-              entriesDiv.prepend(entryElement);
-            });
-          });
-        });
-      }
-
-      function createEntryElement(entry) {
-        const div = document.createElement('div');
-        div.className = 'entry';
-        div.innerHTML = `
-          <div class="entry-meta">
-            Partagé par ${entry.username} le ${new Date(entry.timestamp).toLocaleString()}
-          </div>
-          <div>${entry.content}</div>
-        `;
-        return div;
-      }
-
-      function submitEntries() {
-        categories.forEach(category => {
-          const categoryName = category.dataset.category;
-          const textarea = category.querySelector('textarea');
-          const content = textarea.value.trim();
-
-          if (content) {
-            const username = prompt("Entrez votre nom (optionnel):", "Anonyme");
-            const entry = {
-              username: username || "Anonyme",
-              content: content,
-              timestamp: firebase.database.ServerValue.TIMESTAMP
-            };
-
-            database.ref(categoryName).push(entry);
-            textarea.value = '';
-          }
-        });
-
-        alert('Vos messages d\'amour ont été partagés avec succès !');
-      }
+    socket.on('addNote', (note) => {
+        notes.push(note);
+        io.emit('noteAdded', note);
     });
-  </script>
-</body>
-</html>
+
+    socket.on('deleteNote', (index) => {
+        notes.splice(index, 1);
+        io.emit('noteDeleted', index);
+    });
+
+    socket.on('updateNote', ({ index, newNote }) => {
+        notes[index] = newNote;
+        io.emit('noteUpdated', { index, newNote });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('A user disconnected');
+    });
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
